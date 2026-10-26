@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Gubby Clicker</title>
+<meta name="theme-color" content="#1b1b3a">
+<style>
+:root{
+  --bg1:#1b1b3a; --bg2:#2d2a6e; --card:#ffffff14; --card2:#ffffff22; --line:#ffffff26;
+  --txt:#f4f4ff; --mut:#a9a9d6; --acc:#7CFC9A; --gold:#ffd54f; --bad:#ff6b8b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--txt);
+  background:radial-gradient(1200px 700px at 20% 0%,var(--bg2),var(--bg1));
+  overflow-x:hidden;user-select:none;-webkit-user-select:none;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(#fff3 1px,transparent 1.5px);background-size:46px 46px;}
+#app{position:relative;max-width:1180px;margin:0 auto;padding:14px;display:grid;gap:14px;
+  grid-template-columns:minmax(300px,420px) 1fr;min-height:100vh}
+@media(max-width:820px){#app{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:22px;backdrop-filter:blur(8px)}
+/* LEFT */
+#left{padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;position:sticky;top:14px;align-self:start}
+@media(max-width:820px){#left{position:static}}
+#score{font-size:clamp(30px,6vw,46px);font-weight:900;letter-spacing:.5px;text-shadow:0 3px 0 #0004;text-align:center}
+#score small{display:block;font-size:14px;font-weight:700;color:var(--mut);letter-spacing:2px;text-transform:uppercase}
+#cps{color:var(--acc);font-weight:800}
+#buffs{min-height:26px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.buff{background:#ffd54f33;border:1px solid #ffd54f88;color:var(--gold);font-weight:800;padding:2px 10px;border-radius:99px;font-size:13px;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+#stage{position:relative;width:100%;aspect-ratio:1/1;max-width:380px;display:grid;place-items:center;touch-action:manipulation}
+#glow{position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,#7cfc9a55,transparent 65%);filter:blur(6px);animation:glow 3s ease-in-out infinite}
+@keyframes glow{50%{transform:scale(1.12);opacity:.7}}
+#gubby{width:88%;cursor:pointer;filter:drop-shadow(0 14px 0 #0003);animation:breathe 3s ease-in-out infinite;transform-origin:50% 90%;transition:transform .08s}
+@keyframes breathe{50%{transform:scale(1.025,.975)}}
+#gubby.squish{animation:none;transform:scale(1.12,.84)}
+/* photo mode: user's Gubby image replaces the drawn body, hats stay on top */
+#gubbyImg{display:none;width:88%;aspect-ratio:200/235;object-fit:contain;cursor:pointer;animation:breathe 3s ease-in-out infinite;transform-origin:50% 90%;transition:transform .08s;-webkit-user-drag:none;user-select:none}
+#gubbyImg.squish{animation:none;transform:scale(1.12,.84)}
+#gubbyImg.rainbow{animation:rainbowImg 4s linear infinite}
+@keyframes rainbowImg{from{filter:drop-shadow(0 14px 0 #0003) hue-rotate(0deg)}to{filter:drop-shadow(0 14px 0 #0003) hue-rotate(360deg)}}
+#stage.photo #gubbyImg{display:block}
+#stage.photo #gubby{position:absolute;inset:0;margin:auto;height:auto;pointer-events:none;animation:none;filter:none}
+#stage.photo #gubby>*:not(#hat){display:none}
+#stage.photo #hat{transform:translate(8px,34px) scale(.92);transform-origin:100px 40px}
+#gubby.rainbow #body{animation:rainbow 4s linear infinite}
+@keyframes rainbow{to{filter:hue-rotate(360deg)}}
+#eyes{animation:blink 4.5s infinite;transform-origin:100px 95px}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+#mouthOpen{display:none}
+#gubby.squish #mouthOpen{display:block}
+#gubby.squish #mouthSmile{display:none}
+.float{position:absolute;pointer-events:none;font-weight:900;font-size:24px;color:#fff;text-shadow:0 2px 0 #0008,0 0 10px #7cfc9a;animation:floatUp .9s ease-out forwards;z-index:5;white-space:nowrap}
+.float.crit{color:var(--gold);font-size:32px}
+@keyframes floatUp{from{opacity:1;transform:translate(-50%,0) scale(.8)}to{opacity:0;transform:translate(-50%,-90px) scale(1.2)}}
+.spark{position:absolute;width:8px;height:8px;border-radius:50%;pointer-events:none;animation:spark .6s ease-out forwards;z-index:4}
+@keyframes spark{to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2)}}
+#combo{height:24px;font-weight:900;color:var(--gold);font-size:17px}
+#audioBar{display:flex;gap:10px;align-items:center;width:100%;justify-content:center}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--card2);border:1px solid var(--line);padding:8px 14px;border-radius:12px;font-weight:800;transition:.12s}
+.btn:hover{background:#ffffff33}.btn:active{transform:scale(.96)}
+input[type=range]{accent-color:var(--acc);width:120px}
+/* RIGHT */
+#right{padding:12px;display:flex;flex-direction:column;gap:10px;min-height:60vh}
+#tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{flex:1;min-width:84px;padding:10px 8px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-weight:800;font-size:14px;position:relative}
+.tab.on{background:linear-gradient(135deg,#7cfc9a,#3fd0a0);color:#06281a;border-color:transparent}
+.tab .dot{position:absolute;top:-4px;right:-4px;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;padding:1px 6px;display:none}
+.tab .dot.show{display:block}
+.page{display:none;gap:8px;flex-direction:column}
+.page.on{display:flex}
+.item{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;width:100%;text-align:left;transition:.12s}
+.item .ic{font-size:30px;width:46px;height:46px;border-radius:14px;background:var(--card2);display:grid;place-items:center;flex:none}
+.item .nm{font-weight:900}
+.item .ds{font-size:12.5px;color:var(--mut)}
+.item .rt{margin-left:auto;text-align:right;flex:none}
+.item .cost{font-weight:900;color:var(--gold)}
+.item .own{font-size:22px;font-weight:900;color:var(--acc)}
+button.item:not(.off):hover{background:var(--card2);transform:translateX(3px)}
+.item.off{opacity:.5;cursor:not-allowed}
+.item.done{border-color:#7cfc9a88}
+.item.sel{border-color:var(--acc);box-shadow:0 0 0 2px #7cfc9a55 inset}
+.sub{font-size:12px;color:var(--mut);padding:2px 4px;letter-spacing:1px;text-transform:uppercase;font-weight:800}
+.buyamt{display:flex;gap:6px;align-items:center}
+.buyamt .btn.on{background:var(--acc);color:#06281a}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px;text-align:center}
+.sw svg{width:64px;height:64px}
+.ach{opacity:.45;filter:grayscale(1)}.ach.got{opacity:1;filter:none}
+#toasts{position:fixed;right:12px;top:12px;display:flex;flex-direction:column;gap:8px;z-index:50;pointer-events:none}
+.toast{background:#101030ee;border:1px solid var(--gold);border-radius:14px;padding:10px 14px;font-weight:800;animation:tin .3s,tout .4s 3.4s forwards;max-width:280px}
+@keyframes tin{from{transform:translateX(120%)}}
+@keyframes tout{to{opacity:0;transform:translateY(-20px)}}
+#golden{position:fixed;z-index:40;width:84px;height:84px;cursor:pointer;display:none;animation:gfloat 2s ease-in-out infinite;filter:drop-shadow(0 0 16px #ffd54f)}
+@keyframes gfloat{50%{transform:translateY(-14px) rotate(6deg)}}
+.evo{text-align:center;padding:14px}
+.evo b{color:var(--gold)}
+.big{font-size:34px;font-weight:900;color:var(--gold)}
+.warn{color:var(--bad)}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="left" class="panel">
+    <div id="score"><small>Gubby Puanı</small><span id="pts">0</span></div>
+    <div>saniyede <span id="cps">0</span> &nbsp;·&nbsp; tıklama <span id="cpc" style="color:var(--gold);font-weight:800">1</span></div>
+    <div id="buffs"></div>
+    <div id="stage">
+      <div id="glow"></div>
+      <img id="gubbyImg" alt="Gubby" draggable="false">
+      <svg id="gubby" viewBox="0 -35 200 235" aria-label="Gubby">
+        <defs>
+          <radialGradient id="shine" cx="35%" cy="25%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+        </defs>
+        <ellipse cx="100" cy="188" rx="62" ry="9" fill="#0003"/>
+        <g id="body">
+          <path id="bodyPath" d="M100 22C152 22 186 62 186 118C186 166 152 188 100 188C48 188 14 166 14 118C14 62 48 22 100 22Z" fill="var(--s1,#5fe08a)" stroke="var(--s2,#2fa85a)" stroke-width="5"/>
+          <path d="M100 22C152 22 186 62 186 118C186 166 152 188 100 188C48 188 14 166 14 118C14 62 48 22 100 22Z" fill="url(#shine)"/>
+          <ellipse cx="42" cy="170" rx="20" ry="12" fill="var(--s1,#5fe08a)" stroke="var(--s2,#2fa85a)" stroke-width="4"/>
+          <ellipse cx="158" cy="170" rx="20" ry="12" fill="var(--s1,#5fe08a)" stroke="var(--s2,#2fa85a)" stroke-width="4"/>
+          <circle cx="58" cy="118" r="13" fill="#ff8fb3" opacity=".55"/>
+          <circle cx="142" cy="118" r="13" fill="#ff8fb3" opacity=".55"/>
+        </g>
+        <g id="eyes">
+          <circle cx="72" cy="96" r="19" fill="#fff" stroke="#222" stroke-width="3"/>
+          <circle cx="128" cy="96" r="19" fill="#fff" stroke="#222" stroke-width="3"/>
+          <circle id="pl" cx="72" cy="98" r="9" fill="#1a1a2e"/>
+          <circle id="pr" cx="128" cy="98" r="9" fill="#1a1a2e"/>
+          <circle cx="69" cy="94" r="3.2" fill="#fff"/><circle cx="125" cy="94" r="3.2" fill="#fff"/>
+        </g>
+        <path id="mouthSmile" d="M82 130Q100 150 118 130" fill="none" stroke="#222" stroke-width="5" stroke-linecap="round"/>
+        <g id="mouthOpen"><ellipse cx="100" cy="138" rx="17" ry="15" fill="#3a1020" stroke="#222" stroke-width="4"/><ellipse cx="100" cy="146" rx="9" ry="6" fill="#ff7a9c"/></g>
+        <g id="hat"></g>
+      </svg>
+    </div>
+    <div id="combo"></div>
+    <div id="audioBar">
+      <button class="btn" id="mute">🔊 Ses</button>
+      <input type="range" id="vol" min="0" max="100" value="70" aria-label="Ses seviyesi">
+    </div>
+  </section>
+
+  <section id="right" class="panel">
+    <div id="tabs">
+      <button class="tab on" data-tab="gens">🏠 Binalar</button>
+      <button class="tab" data-tab="upg">⚡ Güçlendir<span class="dot" id="dotUpg"></span></button>
+      <button class="tab" data-tab="shop">🎩 Mağaza</button>
+      <button class="tab" data-tab="ach">🏆 Başarım</button>
+      <button class="tab" data-tab="evo">🔮 Evrim</button>
+      <button class="tab" data-tab="set">⚙️</button>
+    </div>
+    <div id="p-gens" class="page on">
+      <div class="buyamt"><span class="sub">Al:</span>
+        <button class="btn on" data-amt="1">x1</button><button class="btn" data-amt="10">x10</button><button class="btn" data-amt="max">Max</button></div>
+      <button class="item" id="finger"></button>
+      <div id="gensList" class="page on" style="gap:8px"></div>
+    </div>
+    <div id="p-upg" class="page"><div id="upgList" style="display:flex;flex-direction:column;gap:8px"></div></div>
+    <div id="p-shop" class="page">
+      <div class="sub">Renkler</div><div id="skinList" class="grid2"></div>
+      <div class="sub">Şapkalar</div><div id="hatList" class="grid2"></div>
+    </div>
+    <div id="p-ach" class="page"><div id="achList" class="grid2"></div></div>
+    <div id="p-evo" class="page"><div class="item evo" style="flex-direction:column;align-items:center" id="evoBox"></div></div>
+    <div id="p-set" class="page">
+      <button class="item" id="saveNow"><span class="ic">💾</span><span><span class="nm">Şimdi Kaydet</span><br><span class="ds">Oyun zaten otomatik kaydediliyor.</span></span></button>
+      <button class="item" id="exportBtn"><span class="ic">📤</span><span><span class="nm">Kaydı Dışa Aktar</span><br><span class="ds">Kodu kopyala, başka cihazda yükle.</span></span></button>
+      <button class="item" id="importBtn"><span class="ic">📥</span><span><span class="nm">Kaydı İçe Aktar</span><br><span class="ds">Daha önce aldığın kodu yapıştır.</span></span></button>
+      <button class="item" id="resetBtn"><span class="ic">🗑️</span><span><span class="nm warn">Her Şeyi Sıfırla</span><br><span class="ds">Geri alınamaz!</span></span></button>
+      <div class="ds" style="text-align:center;padding:8px">Gubby Clicker · Sesler tarayıcıda canlı üretilir 🎵</div>
+    </div>
+  </section>
+</div>
+<div id="toasts"></div>
+<svg id="golden" viewBox="0 0 200 200"><circle cx="100" cy="105" r="80" fill="#ffd54f" stroke="#f9a825" stroke-width="8"/><circle cx="72" cy="90" r="12" fill="#fff"/><circle cx="128" cy="90" r="12" fill="#fff"/><circle cx="72" cy="92" r="6" fill="#222"/><circle cx="128" cy="92" r="6" fill="#222"/><path d="M75 125Q100 150 125 125" stroke="#222" stroke-width="7" fill="none" stroke-linecap="round"/><text x="100" y="40" font-size="40" text-anchor="middle">✨</text></svg>
+
+<script>
+"use strict";
+/* ============ DATA ============ */
+const SAVE_KEY="gubby-clicker-v1";
+const GENS=[
+ {id:"baby",  name:"Minik Gubby",     ic:"🟢",base:15,      cps:0.1,  ds:"Bir tık da o atar."},
+ {id:"farm",  name:"Gubby Çiftliği",  ic:"🌱",base:100,     cps:1,    ds:"Gubby'ler tarlada yetişir."},
+ {id:"mine",  name:"Gubby Madeni",    ic:"⛏️",base:1100,    cps:8,    ds:"Derinlerde parlak Gubby'ler var."},
+ {id:"fact",  name:"Gubby Fabrikası", ic:"🏭",base:12000,   cps:47,   ds:"Seri üretim Gubby."},
+ {id:"portal",name:"Gubby Portalı",   ic:"🌀",base:130000,  cps:260,  ds:"Başka boyutlardan Gubby gelir."},
+ {id:"galaxy",name:"Gubby Galaksisi", ic:"🌌",base:1400000, cps:1400, ds:"Yıldızlar bile Gubby şeklinde."},
+ {id:"god",   name:"Gubby Tanrısı",   ic:"👑",base:20000000,cps:7800, ds:"Her şey Gubby'dir."},
+ {id:"multi", name:"Gubby Evreni",    ic:"♾️",base:330000000,cps:44000,ds:"Sonsuz Gubby, sonsuz eğlence."},
+];
+/* f = CSS filter applied when the Gubby photo is used */
+const SKINS={
+ green:{n:"Normal",a:"#5fe08a",b:"#2fa85a",cost:0,f:""},
+ pink:{n:"Pembe",a:"#ff9ccd",b:"#d6579a",cost:2000,f:"hue-rotate(140deg) saturate(1.3)"},
+ blue:{n:"Mavi",a:"#6fc3ff",b:"#2f7fd1",cost:2000,f:"hue-rotate(70deg) saturate(1.2)"},
+ purple:{n:"Mor",a:"#b48cff",b:"#7a4fd1",cost:25000,f:"hue-rotate(110deg) saturate(1.3)"},
+ orange:{n:"Turuncu",a:"#ffb066",b:"#e07a1f",cost:25000,f:"hue-rotate(-60deg) saturate(1.4)"},
+ gold:{n:"Altın",a:"#ffe27a",b:"#e0a800",cost:500000,f:"sepia(1) saturate(3.5) brightness(1.1)"},
+ ghost:{n:"Hayalet",a:"#eaf2ff",b:"#9db4d8",cost:5000000,f:"grayscale(.7) brightness(1.35) opacity(.85)"},
+ rainbow:{n:"Gökkuşağı",a:"#ff6b6b",b:"#b03a3a",cost:100000000,rb:true,f:""},
+};
+const HATS={
+ none:{n:"Şapkasız",cost:0,svg:""},
+ cap:{n:"Kep",cost:500,svg:'<path d="M60 40Q100 -8 140 40Z" fill="#e53935" stroke="#8e1b1b" stroke-width="4"/><path d="M128 38h46a8 8 0 0 1 0 11h-46z" fill="#b71c1c"/><circle cx="100" cy="2" r="5" fill="#fff"/>'},
+ party:{n:"Parti",cost:8000,svg:'<path d="M100 -32L68 40H132Z" fill="#7e57c2" stroke="#4527a0" stroke-width="4"/><circle cx="100" cy="-34" r="8" fill="#ffd54f"/><circle cx="90" cy="5" r="4" fill="#ffd54f"/><circle cx="108" cy="20" r="4" fill="#69f0ae"/>'},
+ top:{n:"Silindir",cost:60000,svg:'<rect x="68" y="-22" width="64" height="56" rx="4" fill="#212121" stroke="#000" stroke-width="3"/><rect x="68" y="14" width="64" height="9" fill="#c62828"/><rect x="50" y="32" width="100" height="10" rx="5" fill="#212121" stroke="#000" stroke-width="3"/>'},
+ wizard:{n:"Büyücü",cost:600000,svg:'<path d="M100 -34Q112 10 150 42H50Q88 10 100 -34Z" fill="#3949ab" stroke="#1a237e" stroke-width="4"/><rect x="48" y="36" width="104" height="9" rx="4" fill="#283593"/><text x="100" y="22" font-size="22" text-anchor="middle">⭐</text>'},
+ crown:{n:"Taç",cost:6000000,svg:'<path d="M62 42L62 4L84 24L100 -6L116 24L138 4L138 42Z" fill="#ffd54f" stroke="#f9a825" stroke-width="4" stroke-linejoin="round"/><circle cx="100" cy="-6" r="5" fill="#e53935"/><circle cx="62" cy="4" r="4" fill="#42a5f5"/><circle cx="138" cy="4" r="4" fill="#66bb6a"/>'},
+ halo:{n:"Melek Halkası",cost:80000000,svg:'<ellipse cx="100" cy="6" rx="38" ry="9" fill="none" stroke="#fff176" stroke-width="7"/><ellipse cx="100" cy="6" rx="38" ry="9" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/>'},
+};
+/* upgrades */
+const UPGS=[];
+[[25,200,2],[150,2000,2],[600,20000,2],[2000,300000,3],[6000,6000000,3]].forEach((u,i)=>UPGS.push({id:"c"+i,name:["Güçlü Parmak","Çelik Parmak","Elmas Parmak","Gubby Eldiveni","Titan Eli"][i],ic:"👆",ds:"Tıklama gücü x"+u[2],cost:u[1],req:()=>S.clicks>=u[0],t:"click",m:u[2],hint:u[0]+" tıklama"}));
+[[1500,3000,1.25],[60000,100000,1.5],[3e6,5e6,2],[3e8,5e8,2]].forEach((u,i)=>UPGS.push({id:"a"+i,name:["Gubby Sütü","Gubby Vitamini","Gubby Enerjisi","Gubby Büyüsü"][i],ic:"🥛",ds:"Tüm üretim x"+u[2],cost:u[1],req:()=>S.runTotal>=u[0],t:"all",m:u[2],hint:""}));
+UPGS.push({id:"syn",name:"Ortak Güç",ic:"🤝",ds:"Tıklama, saniyelik üretimin %5'ini de ekler",cost:50000,req:()=>S.runTotal>=20000,t:"syn",m:0.05});
+UPGS.push({id:"crit",name:"Şanslı Dokunuş",ic:"🍀",ds:"Tıklamalarda %8 şansla x10 kritik vuruş",cost:10000,req:()=>S.clicks>=100,t:"crit"});
+UPGS.push({id:"gold",name:"Altın Gözü",ic:"🔭",ds:"Altın Gubby daha sık görünür",cost:150000,req:()=>S.runTotal>=100000,t:"gold"});
+GENS.forEach((g,i)=>{[[1,10,2],[10,100,2],[25,1000,2],[50,10000,3]].forEach((tr,k)=>{
+  UPGS.push({id:"g"+i+"_"+k,name:g.name+" "+["I","II","III","IV"][k],ic:g.ic,ds:g.name+" üretimi x"+tr[2],cost:g.base*tr[1],req:()=>(S.gen[g.id]||0)>=tr[0],t:"gen",gi:g.id,m:tr[2],hint:g.name+" x"+tr[0]});
+});});
+UPGS.sort((a,b)=>a.cost-b.cost);
+const ACHS=[
+ ["first","İlk Dokunuş","Gubby'ye ilk tık",()=>S.clicks>=1],
+ ["c100","Gıdıklama","100 tıklama",()=>S.clicks>=100],
+ ["c1k","Gubby Dostu","1.000 tıklama",()=>S.clicks>=1000],
+ ["c10k","Parmak Makinesi","10.000 tıklama",()=>S.clicks>=10000],
+ ["p1k","Cep Harçlığı","1K toplam puan",()=>S.all>=1e3],
+ ["p1m","Milyoner","1M toplam puan",()=>S.all>=1e6],
+ ["p1b","Milyarder","1B toplam puan",()=>S.all>=1e9],
+ ["p1t","Trilyoner","1T toplam puan",()=>S.all>=1e12],
+ ["b10","Küçük Sürü","Toplam 10 bina",()=>totalBuildings()>=10],
+ ["b100","Gubby Ordusu","Toplam 100 bina",()=>totalBuildings()>=100],
+ ["b500","Gubby Ülkesi","Toplam 500 bina",()=>totalBuildings()>=500],
+ ["gold1","Altın Avcısı","Altın Gubby yakala",()=>S.goldCaught>=1],
+ ["gold10","Altın Koleksiyoncusu","10 Altın Gubby yakala",()=>S.goldCaught>=10],
+ ["hat","Moda Tutkunu","Bir şapka satın al",()=>S.hats.length>1],
+ ["skin","Renk Değişimi","Bir renk satın al",()=>S.skins.length>1],
+ ["evo","Evrim Geçirdi","İlk evrimini yap",()=>S.evos>=1],
+ ["all","Gubby Efendisi","Tüm şapkaları topla",()=>S.hats.length>=Object.keys(HATS).length],
+];
+/* ============ STATE ============ */
+function fresh(){return {pts:0,runTotal:0,all:0,clicks:0,gen:{},finger:0,upg:[],skins:["green"],hats:["none"],skin:"green",hat:"none",ach:[],crystals:0,evos:0,goldCaught:0,muted:false,vol:.7,t:Date.now()}}
+let S=fresh();
+let buyAmt=1, frenzy=0, luckyEnd=0, combo=0, lastClick=0;
+function load(){try{const r=localStorage.getItem(SAVE_KEY);if(r){S=Object.assign(fresh(),JSON.parse(r))}}catch(e){}}
+function save(){S.t=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S))}catch(e){}}
+/* ============ UTIL ============ */
+const $=id=>document.getElementById(id);
+const SUF=["","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc"];
+function fmt(n){if(!isFinite(n))return"∞";if(n<1000)return Number.isInteger(n)?String(n):(Math.floor(n*10)/10).toFixed(1);
+  let i=Math.floor(Math.log10(n)/3);if(i>=SUF.length)return n.toExponential(2);
+  const v=n/Math.pow(1000,i);return (v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2))+SUF[i]}
+function totalBuildings(){return GENS.reduce((a,g)=>a+(S.gen[g.id]||0),0)}
+const has=id=>S.upg.includes(id);
+function genCost(g,n){const o=S.gen[g.id]||0;const r=1.15;return Math.ceil(g.base*Math.pow(r,o)*(Math.pow(r,n)-1)/(r-1))}
+function maxAfford(g){let n=0;while(n<1000&&genCost(g,n+1)<=S.pts)n++;return n}
+function fingerCost(){return Math.ceil(50*Math.pow(1.7,S.finger))}
+/* ============ MULTIPLIERS ============ */
+function globalMult(){let m=1+S.crystals*0.1;UPGS.forEach(u=>{if(u.t==="all"&&has(u.id))m*=u.m});if(frenzy>0)m*=7;return m}
+function genMult(id){let m=1;UPGS.forEach(u=>{if(u.t==="gen"&&u.gi===id&&has(u.id))m*=u.m});return m}
+function cps(){let c=0;GENS.forEach(g=>{c+=(S.gen[g.id]||0)*g.cps*genMult(g.id)});return c*globalMult()}
+function clickPower(){let m=1;UPGS.forEach(u=>{if(u.t==="click"&&has(u.id))m*=u.m});
+  let base=(1+S.finger)*m; if(has("syn"))base+=cps()*0.05;
+  const cm=1+Math.min(combo,50)/100; return base*(1+S.crystals*0.1)*(frenzy>0?7:1)*cm}
+/* ============ AUDIO ============ */
+let ac=null,master=null;
+function initAudio(){
+  if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();master=ac.createGain();master.gain.value=S.vol;master.connect(ac.destination)}catch(e){}}
+  if(ac&&ac.state==="suspended")ac.resume();
+  loadGubSample();
+}
+function syl(t,f0,f1,dur,vol,type){
+  const o=ac.createOscillator(),o2=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain(),lp=ac.createBiquadFilter();
+  o.type=type||"sawtooth";o2.type="triangle";
+  o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  o2.frequency.setValueAtTime(f0*2,t);o2.frequency.exponentialRampToValueAtTime(f1*2,t+dur);
+  f.type="bandpass";f.Q.value=4;f.frequency.setValueAtTime(450,t);f.frequency.exponentialRampToValueAtTime(1700,t+dur*.7);
+  lp.type="lowpass";lp.frequency.value=3200;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(f);o2.connect(f);f.connect(lp);lp.connect(g);g.connect(master);
+  o.start(t);o2.start(t);o.stop(t+dur+.03);o2.stop(t+dur+.03);
+}
+let gubBuf=null,gubEl=null;
+function loadGubSample(){
+  if(!ac||gubBuf||gubEl)return;
+  fetch("gubby.mp3").then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>ac.decodeAudioData(b,res,rej))).then(buf=>{gubBuf=buf})
+  .catch(()=>{try{gubEl=new Audio("gubby.mp3");gubEl.preload="auto"}catch(e){}});
+}
+function sGub(big){
+  if(!ac||S.muted)return;
+  loadGubSample();
+  const p=.9+Math.random()*.35;
+  if(gubBuf){
+    const src=ac.createBufferSource(),g=ac.createGain();
+    src.buffer=gubBuf;src.playbackRate.value=big?p*.8:p;g.gain.value=big?1:.85;
+    src.connect(g);g.connect(master);src.start();
+    return;
+  }
+  if(gubEl){try{const a=gubEl.cloneNode();a.volume=S.vol;a.playbackRate=p;a.play().catch(()=>{})}catch(e){}return}
+  const t=ac.currentTime;
+  syl(t,170*p,330*p,.09,.9);
+  if(big||Math.random()<.45)syl(t+.1,300*p,150*p,.13,.75);
+}
+function tone(t,f,d,v,type){const o=ac.createOscillator(),g=ac.createGain();o.type=type||"sine";o.frequency.value=f;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g);g.connect(master);o.start(t);o.stop(t+d+.02)}
+function sBuy(){if(!ac||S.muted)return;const t=ac.currentTime;[523,659,784].forEach((f,i)=>tone(t+i*.06,f,.14,.25,"triangle"))}
+function sGold(){if(!ac||S.muted)return;const t=ac.currentTime;[659,784,988,1319,1568].forEach((f,i)=>tone(t+i*.07,f,.3,.22,"sine"));sGub(true)}
+function sAch(){if(!ac||S.muted)return;const t=ac.currentTime;[392,523,659,784].forEach((f,i)=>tone(t+i*.09,f,.25,.25,"square"))}
+function sBad(){if(!ac||S.muted)return;tone(ac.currentTime,140,.15,.25,"sawtooth")}
+/* ============ GUBBY ============ */
+const gubby=$("gubby"),stage=$("stage");
+function applyLook(){
+  const s=SKINS[S.skin]||SKINS.green;
+  gubby.style.setProperty("--s1",s.a);gubby.style.setProperty("--s2",s.b);
+  gubby.classList.toggle("rainbow",!!s.rb);
+  gimg.classList.toggle("rainbow",!!s.rb);
+  gimg.style.filter=s.rb?"":("drop-shadow(0 14px 0 #0003) "+(s.f||""));
+  $("hat").innerHTML=(HATS[S.hat]||HATS.none).svg;
+}
+/* Gubby photo: gubby.webp next to index.html. Falls back to the drawn Gubby if missing. */
+const gimg=$("gubbyImg");
+const PHOTO_SRC=["gubby.webp","gubby.png","gubby.jpg"];
+(function loadPhoto(i){
+  if(i>=PHOTO_SRC.length)return;
+  const t=new Image();
+  t.onload=()=>{gimg.src=PHOTO_SRC[i];stage.classList.add("photo");applyLook()};
+  t.onerror=()=>loadPhoto(i+1);
+  t.src=PHOTO_SRC[i];
+})(0);
+function spark(x,y,color){for(let i=0;i<6;i++){const d=document.createElement("div");d.className="spark";d.style.left=x+"px";d.style.top=y+"px";
+  d.style.background=color||["#7cfc9a","#ffd54f","#ff8fb3","#6fc3ff"][i%4];
+  const a=Math.random()*6.28,r=30+Math.random()*40;d.style.setProperty("--dx",Math.cos(a)*r+"px");d.style.setProperty("--dy",Math.sin(a)*r+"px");
+  stage.appendChild(d);setTimeout(()=>d.remove(),650)}}
+function floatText(txt,x,y,crit){const f=document.createElement("div");f.className="float"+(crit?" crit":"");f.textContent=txt;f.style.left=x+"px";f.style.top=y+"px";stage.appendChild(f);setTimeout(()=>f.remove(),950)}
+function doClick(ev){
+  initAudio();
+  const now=performance.now();
+  combo=(now-lastClick<650)?combo+1:1;lastClick=now;
+  let p=clickPower(),crit=false;
+  if(has("crit")&&Math.random()<.08){p*=10;crit=true}
+  S.pts+=p;S.runTotal+=p;S.all+=p;S.clicks++;
+  const r=stage.getBoundingClientRect();
+  const cx=(ev.clientX!==undefined?ev.clientX:r.left+r.width/2)-r.left;
+  const cy=(ev.clientY!==undefined?ev.clientY:r.top+r.height/2)-r.top;
+  floatText("+"+fmt(p),cx+(Math.random()*40-20),cy-10,crit);spark(cx,cy);
+  gubby.classList.add("squish");gimg.classList.add("squish");setTimeout(()=>{gubby.classList.remove("squish");gimg.classList.remove("squish")},110);
+  sGub(crit);
+  if(navigator.vibrate&&crit)navigator.vibrate(20);
+  update();
+}
+gubby.addEventListener("pointerdown",e=>{e.preventDefault();doClick(e)});
+gimg.addEventListener("pointerdown",e=>{e.preventDefault();doClick(e)});
+window.addEventListener("keydown",e=>{if((e.code==="Space"||e.code==="Enter")&&!e.repeat&&document.activeElement.tagName!=="BUTTON"){e.preventDefault();doClick({})}});
+document.addEventListener("mousemove",e=>{
+  const r=gubby.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height*.45;
+  const dx=Math.max(-1,Math.min(1,(e.clientX-cx)/300)),dy=Math.max(-1,Math.min(1,(e.clientY-cy)/300));
+  $("pl").setAttribute("cx",72+dx*6);$("pl").setAttribute("cy",98+dy*5);
+  $("pr").setAttribute("cx",128+dx*6);$("pr").setAttribute("cy",98+dy*5);
+});
+/* ============ UI BUILD ============ */
+function buildGens(){
+  $("gensList").innerHTML=GENS.map(g=>`<button class="item" data-gen="${g.id}">
+    <span class="ic">${g.ic}</span><span><span class="nm">${g.name}</span><br><span class="ds">${g.ds}</span><br><span class="ds" data-gps="${g.id}"></span></span>
+    <span class="rt"><span class="own" data-own="${g.id}">0</span><br><span class="cost" data-gc="${g.id}"></span></span></button>`).join("");
+}
+function buildShop(){
+  $("skinList").innerHTML=Object.keys(SKINS).map(k=>{const s=SKINS[k];
+    return `<button class="item sw" data-skin="${k}"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="56" rx="40" ry="36" fill="${s.a}" stroke="${s.b}" stroke-width="4"/><circle cx="36" cy="48" r="8" fill="#fff"/><circle cx="64" cy="48" r="8" fill="#fff"/><circle cx="36" cy="50" r="4" fill="#222"/><circle cx="64" cy="50" r="4" fill="#222"/></svg><span class="nm">${s.n}</span><span class="ds" data-sk="${k}"></span></button>`}).join("");
+  $("hatList").innerHTML=Object.keys(HATS).map(k=>{const h=HATS[k];
+    return `<button class="item sw" data-hat="${k}"><svg viewBox="0 -40 200 100">${h.svg||'<text x="100" y="30" font-size="40" text-anchor="middle">🚫</text>'}</svg><span class="nm">${h.n}</span><span class="ds" data-ht="${k}"></span></button>`}).join("");
+  $("achList").innerHTML=ACHS.map(a=>`<div class="item sw ach" data-ach="${a[0]}"><span style="font-size:30px">🏆</span><span class="nm">${a[1]}</span><span class="ds">${a[2]}</span></div>`).join("");
+}
+let upgSig="";
+function renderUpgs(){
+  const avail=UPGS.filter(u=>!has(u.id)&&u.req());
+  const soon=UPGS.filter(u=>!has(u.id)&&!u.req()&&u.hint).slice(0,0);
+  const sig=avail.map(u=>u.id).join(",");
+  if(sig!==upgSig){upgSig=sig;
+    $("upgList").innerHTML=avail.length?avail.map(u=>`<button class="item" data-upg="${u.id}"><span class="ic">${u.ic}</span><span><span class="nm">${u.name}</span><br><span class="ds">${u.ds}</span></span><span class="rt"><span class="cost">${fmt(u.cost)}</span></span></button>`).join(""):`<div class="ds" style="text-align:center;padding:30px">Şimdilik yükseltme yok.<br>Tıklamaya ve bina almaya devam et! 🌱</div>`;
+  }
+  document.querySelectorAll("[data-upg]").forEach(b=>{const u=UPGS.find(x=>x.id===b.dataset.upg);b.classList.toggle("off",S.pts<u.cost)});
+  const n=avail.filter(u=>S.pts>=u.cost).length;const d=$("dotUpg");d.textContent=n;d.classList.toggle("show",n>0);
+}
+function renderEvo(){
+  const gain=Math.floor(Math.sqrt(S.runTotal/1e6));
+  $("evoBox").innerHTML=`<div class="big">🔮 ${S.crystals} Kristal</div>
+   <div>Her kristal tüm kazançlara <b>+%10</b> verir.<br>Şu anki bonus: <b>+%${S.crystals*10}</b></div>
+   <div class="ds" style="margin:8px 0">Evrim: puanını, binalarını ve yükseltmelerini sıfırlar. Renkler, şapkalar, başarımlar ve kristaller kalır.</div>
+   <div>Bu turda toplanan: <b>${fmt(S.runTotal)}</b></div>
+   <div style="margin:8px 0">Şimdi evrilirsen: <b style="color:var(--acc)">+${gain} kristal</b></div>
+   <button class="btn" id="evoGo" ${gain<1?'disabled style="opacity:.4"':''}>${gain<1?"1M puan topla":"✨ Gubby'yi Evrimleştir"}</button>`;
+}
+/* ============ UPDATE ============ */
+function update(){
+  $("pts").textContent=fmt(Math.floor(S.pts));
+  $("cps").textContent=fmt(cps());
+  $("cpc").textContent=fmt(clickPower());
+  document.title=fmt(Math.floor(S.pts))+" · Gubby Clicker";
+  const fc=fingerCost();const f=$("finger");
+  f.innerHTML=`<span class="ic">👆</span><span><span class="nm">Parmak Eğitimi</span><br><span class="ds">Tıklama başına +1 puan</span></span><span class="rt"><span class="own">${S.finger}</span><br><span class="cost">${fmt(fc)}</span></span>`;
+  f.classList.toggle("off",S.pts<fc);
+  GENS.forEach(g=>{
+    const o=S.gen[g.id]||0;const n=buyAmt==="max"?Math.max(1,maxAfford(g)):buyAmt;const c=genCost(g,n);
+    const b=document.querySelector(`[data-gen="${g.id}"]`);
+    b.classList.toggle("off",S.pts<c);
+    document.querySelector(`[data-own="${g.id}"]`).textContent=o;
+    document.querySelector(`[data-gc="${g.id}"]`).textContent=(n>1?"x"+n+" · ":"")+fmt(c);
+    document.querySelector(`[data-gps="${g.id}"]`).textContent=o?`Toplam ${fmt(o*g.cps*genMult(g.id)*globalMult())}/sn`:`${fmt(g.cps*genMult(g.id)*globalMult())}/sn her biri`;
+  });
+  Object.keys(SKINS).forEach(k=>{const b=document.querySelector(`[data-skin="${k}"]`),own=S.skins.includes(k);
+    b.classList.toggle("sel",S.skin===k);b.classList.toggle("off",!own&&S.pts<SKINS[k].cost);
+    document.querySelector(`[data-sk="${k}"]`).textContent=S.skin===k?"Giyili ✓":own?"Giy":fmt(SKINS[k].cost)});
+  Object.keys(HATS).forEach(k=>{const b=document.querySelector(`[data-hat="${k}"]`),own=S.hats.includes(k);
+    b.classList.toggle("sel",S.hat===k);b.classList.toggle("off",!own&&S.pts<HATS[k].cost);
+    document.querySelector(`[data-ht="${k}"]`).textContent=S.hat===k?"Giyili ✓":own?"Giy":fmt(HATS[k].cost)});
+  renderUpgs();
+  document.querySelectorAll("[data-ach]").forEach(e=>e.classList.toggle("got",S.ach.includes(e.dataset.ach)));
+  renderBuffs();
+}
+function renderBuffs(){
+  const b=[];if(frenzy>0)b.push(`🔥 Çılgınlık x7 · ${Math.ceil(frenzy)}sn`);
+  $("buffs").innerHTML=b.map(x=>`<span class="buff">${x}</span>`).join("");
+  $("combo").textContent=combo>=5&&performance.now()-lastClick<900?`KOMBO x${combo} (+%${Math.min(combo,50)})`:"";
+}
+function toast(t){const d=document.createElement("div");d.className="toast";d.textContent=t;$("toasts").appendChild(d);setTimeout(()=>d.remove(),3900)}
+function checkAch(){ACHS.forEach(a=>{if(!S.ach.includes(a[0])&&a[3]()){S.ach.push(a[0]);toast("🏆 Başarım: "+a[1]);sAch()}})}
+/* ============ ACTIONS ============ */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button,[data-tab]");if(!t)return;initAudio();
+  if(t.dataset.tab){document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
+    document.querySelectorAll(".page").forEach(p=>{if(p.id&&p.id.startsWith("p-"))p.classList.toggle("on",p.id==="p-"+t.dataset.tab)});
+    if(t.dataset.tab==="evo")renderEvo();return}
+  if(t.dataset.amt){buyAmt=t.dataset.amt==="max"?"max":+t.dataset.amt;document.querySelectorAll("[data-amt]").forEach(x=>x.classList.toggle("on",x===t));update();return}
+  if(t.id==="finger"){const c=fingerCost();if(S.pts>=c){S.pts-=c;S.finger++;sBuy()}else sBad();update();return}
+  if(t.dataset.gen){const g=GENS.find(x=>x.id===t.dataset.gen);const n=buyAmt==="max"?Math.max(1,maxAfford(g)):buyAmt;const c=genCost(g,n);
+    if(S.pts>=c){S.pts-=c;S.gen[g.id]=(S.gen[g.id]||0)+n;sBuy();sGub()}else sBad();checkAch();update();return}
+  if(t.dataset.upg){const u=UPGS.find(x=>x.id===t.dataset.upg);if(S.pts>=u.cost){S.pts-=u.cost;S.upg.push(u.id);sBuy();toast("⚡ "+u.name)}else sBad();update();return}
+  if(t.dataset.skin){const k=t.dataset.skin,s=SKINS[k];
+    if(S.skins.includes(k)){S.skin=k;sGub()}else if(S.pts>=s.cost){S.pts-=s.cost;S.skins.push(k);S.skin=k;sBuy();sGub(true)}else sBad();
+    applyLook();checkAch();update();return}
+  if(t.dataset.hat){const k=t.dataset.hat,h=HATS[k];
+    if(S.hats.includes(k)){S.hat=k;sGub()}else if(S.pts>=h.cost){S.pts-=h.cost;S.hats.push(k);S.hat=k;sBuy();sGub(true)}else sBad();
+    applyLook();checkAch();update();return}
+  if(t.id==="evoGo"){const gain=Math.floor(Math.sqrt(S.runTotal/1e6));if(gain<1)return;
+    if(!confirm(`Gubby evrilsin mi? +${gain} kristal kazanacaksın, puan ve binalar sıfırlanır.`))return;
+    S.crystals+=gain;S.evos++;S.pts=0;S.runTotal=0;S.gen={};S.finger=0;S.upg=[];upgSig="";frenzy=0;
+    sGold();toast("🔮 Evrim! +"+gain+" kristal");checkAch();save();update();renderEvo();return}
+  if(t.id==="mute"){S.muted=!S.muted;$("mute").textContent=S.muted?"🔇 Kapalı":"🔊 Ses";return}
+  if(t.id==="saveNow"){save();toast("💾 Kaydedildi")}
+  if(t.id==="exportBtn"){const code=btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+    if(navigator.clipboard)navigator.clipboard.writeText(code).then(()=>toast("📋 Kod kopyalandı"),()=>prompt("Kodu kopyala:",code));else prompt("Kodu kopyala:",code)}
+  if(t.id==="importBtn"){const c=prompt("Kayıt kodunu yapıştır:");if(c){try{S=Object.assign(fresh(),JSON.parse(decodeURIComponent(escape(atob(c.trim())))));save();upgSig="";applyLook();update();toast("📥 Yüklendi")}catch(err){toast("Geçersiz kod")}}}
+  if(t.id==="resetBtn"){if(confirm("Tüm ilerleme silinecek. Emin misin?")&&confirm("Gerçekten emin misin?")){S=fresh();save();upgSig="";applyLook();update();toast("Sıfırlandı")}}
+});
+$("vol").addEventListener("input",e=>{S.vol=e.target.value/100;if(master)master.gain.value=S.vol});
+/* ============ GOLDEN GUBBY ============ */
+const gold=$("golden");let goldTimer=0,goldHide=0;
+function scheduleGold(){const base=has("gold")?35:70;goldTimer=base+Math.random()*base}
+function spawnGold(){gold.style.left=(8+Math.random()*80)+"vw";gold.style.top=(15+Math.random()*65)+"vh";gold.style.display="block";goldHide=13}
+gold.addEventListener("pointerdown",e=>{e.preventDefault();initAudio();gold.style.display="none";goldHide=0;S.goldCaught++;
+  if(Math.random()<.5){const bonus=Math.max(cps()*900,S.pts*.12,100);S.pts+=bonus;S.runTotal+=bonus;S.all+=bonus;toast("🍀 Şans! +"+fmt(bonus)+" puan")}
+  else{frenzy=30;toast("🔥 Çılgınlık! 30 sn x7")}
+  sGold();checkAch();update()});
+/* ============ LOOP ============ */
+let last=performance.now(),accSave=0,accUi=0;
+setInterval(()=>{
+  const now=performance.now(),dt=Math.min((now-last)/1000,1);last=now;
+  const g=cps()*dt;S.pts+=g;S.runTotal+=g;S.all+=g;
+  if(frenzy>0)frenzy=Math.max(0,frenzy-dt);
+  if(goldHide>0){goldHide-=dt;if(goldHide<=0)gold.style.display="none"}
+  else if(gold.style.display!=="block"){goldTimer-=dt;if(goldTimer<=0){spawnGold();scheduleGold()}}
+  accUi+=dt;if(accUi>=.12){accUi=0;checkAch();update()}
+  accSave+=dt;if(accSave>=10){accSave=0;save()}
+},50);
+window.addEventListener("beforeunload",save);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});
+/* ============ INIT ============ */
+load();buildGens();buildShop();applyLook();scheduleGold();
+$("mute").textContent=S.muted?"🔇 Kapalı":"🔊 Ses";$("vol").value=Math.round(S.vol*100);
+{const away=Math.min((Date.now()-S.t)/1000,8*3600);if(away>60&&cps()>0){const e=cps()*away*.5;S.pts+=e;S.runTotal+=e;S.all+=e;setTimeout(()=>toast("😴 Sen yokken Gubby'ler "+fmt(e)+" puan kazandı"),600)}}
+update();
+</script>
+</body>
+</html>
